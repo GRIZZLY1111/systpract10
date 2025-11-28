@@ -5,7 +5,7 @@
 #include <Windows.h>
 #include <conio.h>
 
-volatile int iterations[3] = { 0 };
+volatile long iterations[3] = { 0 };
 volatile bool stressRunning = false;
 
 const char* PriorityToString(int prio) {
@@ -22,9 +22,10 @@ const char* PriorityToString(int prio) {
 }
 
 DWORD WINAPI Thread0(LPVOID) {
+        long a = 0;
     while (true) {
-        iterations[0]++;
-        Sleep(1);
+        a++;
+        InterlockedIncrement(&iterations[0]);
     }
     return 0;
 }
@@ -35,8 +36,7 @@ DWORD WINAPI Thread1(LPVOID) {
         long c = a + b;
         a = b;
         b = c;
-        iterations[1]++;
-        Sleep(1);
+        InterlockedIncrement(&iterations[1]);
     }
     return 0;
 }
@@ -47,8 +47,7 @@ DWORD WINAPI Thread2(LPVOID) {
         for (int i = 1; i <= 10; ++i) {
             f *= i;
         }
-        iterations[2]++;
-        Sleep(1);
+        InterlockedIncrement(&iterations[2]);
     }
     return 0;
 }
@@ -56,7 +55,7 @@ DWORD WINAPI Thread2(LPVOID) {
 DWORD WINAPI StressThreadProc(LPVOID) {
     stressRunning = true;
     while (stressRunning) {
-        volatile int x = 0;
+        int x = 0;
         x++;
     }
     return 0;
@@ -64,7 +63,6 @@ DWORD WINAPI StressThreadProc(LPVOID) {
 
 int main() {
     setlocale(0, "rus");
-
     std::cout << "Потоки будут запущены со следующими приоритетами:\n";
     std::cout << "Поток 1 - Инкремент: BELOW_NORMAL (-1)\n";
     std::cout << "Поток 2 - Фибоначчи: NORMAL (0)\n";
@@ -98,7 +96,7 @@ int main() {
             int iters = iterations[i];
             iterations[i] = 0;
             int p = GetThreadPriority(hThreads[i]);
-            std::cout << "Поток " << (i + 1) << " - " << names[i] << ": "<< iters << " итераций | Приоритет: "<< PriorityToString(p) << " (" << p << ")\n";
+            std::cout << "Поток " << (i + 1) << " - " << names[i] << ": " << iters << " итераций | Приоритет: " << PriorityToString(p) << " (" << p << ")\n";
         }
 
         if (stressRunning && stressThreadHandle != nullptr) {
@@ -182,7 +180,6 @@ int main() {
         TerminateThread(hThreads[i], 0);
         CloseHandle(hThreads[i]);
     }
-
     std::cout << "\nПрограмма завершена.\n";
     return 0;
 }
